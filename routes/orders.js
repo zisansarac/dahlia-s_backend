@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const ordersController = require('../controllers/ordersController');
+const verifyToken = require('../middleware/auth'); // <-- bu eklendi
 
-// Tüm siparişleri getir
-router.get('/', ordersController.getAllOrders);
+// Sadece giriş yapan kullanıcılar erişebilsin:
+router.get('/', verifyToken, ordersController.getAllOrders);
+router.post('/', verifyToken, ordersController.createOrder);
+router.put('/:id', verifyToken, ordersController.updateOrderStatus);
+router.put('/update/:id', verifyToken, ordersController.updateOrder);
 
-// Yeni sipariş oluştur
-router.post('/', ordersController.createOrder);
-
-// Sipariş durumu güncelle
-router.put('/:id', ordersController.updateOrderStatus);
-
-// Siparişi sil
-router.delete('/:id', ordersController.deleteOrder);
+router.delete('/:id', verifyToken, ordersController.deleteOrder);
 
 module.exports = router;

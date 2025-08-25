@@ -3,17 +3,20 @@ const router = express.Router();
 const db = require('../db');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs'); 
 
 // Mail ayarları (Gmail için örnek)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'seningmailein@gmail.com',
-    pass: 'uygulama-sifresi' // Gerçek şifre değil, App Password olmalı
+    user: 'officialdahliasdahlias@gmail.com',
+    pass: 'imkt onkv qoly fsep' // app password
   }
 });
 
-// Şifremi unuttum endpoint'i
+
+
+// forgot-password
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
 
@@ -29,7 +32,7 @@ router.post('/forgot-password', async (req, res) => {
 
     await db.query('UPDATE users SET reset_token = ?, reset_token_expire = ? WHERE email = ?', [token, expireDate, email]);
 
-    const resetUrl = `http://localhost:3000/reset-password/${token}`;
+    const resetUrl = `http://192.168.0.74/reset-password/${token}`;
 
     await transporter.sendMail({
       to: email,
@@ -43,5 +46,33 @@ router.post('/forgot-password', async (req, res) => {
     res.status(500).json({ message: 'Bir hata oluştu.' });
   }
 });
+
+
+
+
+// reset-password
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) return res.status(400).json({ message: 'Yeni şifre gerekli.' });
+
+  const [users] = await db.query(
+    'SELECT * FROM users WHERE reset_token = ? AND reset_token_expire > NOW()',
+    [token]
+  );
+  if (users.length === 0) return res.status(400).json({ message: 'Geçersiz veya süresi dolmuş token.' });
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = users[0];
+
+  await db.query(
+    'UPDATE users SET password = ?, reset_token = NULL, reset_token_expire = NULL WHERE id = ?',
+    [hashedPassword, user.id]
+  );
+
+  res.status(200).json({ message: 'Şifre başarıyla güncellendi.' });
+});
+
 
 module.exports = router;
